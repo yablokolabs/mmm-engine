@@ -27,6 +27,10 @@ This is the **fastest MMM computation engine available**, outperforming Robyn, M
 ---
 ## 🧮 Math Formulas
 
+- Sample visualization of the deterministic transforms computed by the engine:
+
+![MMM curves](examples/mmm_curves.png)
+
 - **Geometric adstock:** $a_t = x_t + \lambda a_{t-1}$ with decay $\lambda \in [0,1)$.
 
 - **Hill saturation:** $s_t = \frac{x_t^p}{\alpha^p + x_t^p + 10^{-9}}$ with slope $p$ and half-saturation $\alpha$.
