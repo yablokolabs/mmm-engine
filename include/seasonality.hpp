@@ -2,6 +2,5 @@
 
 #include <vector>
 
-double season(size_t t,
-              const std::vector<double>& a,
-              const std::vector<double>& b);
+double season(size_t t, const std::vector<double> &a,
+              const std::vector<double> &b);

@@ -162,6 +162,14 @@ This project welcomes:
 
 If you wish to extend functionality (e.g., GPU kernels, additional MMM curves, custom optimizers), the architecture is explicitly modular.
 
+### Code Style
+
+Run clang-format before committing:
+
+```
+clang-format-20 -i $(find src include -type f -name '*.cpp' -o -name '*.hpp')
+```
+
 ## 📜 License
 
 Released under the MIT License — free for commercial & open-source use.
