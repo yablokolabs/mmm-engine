@@ -41,6 +41,7 @@ struct FitResult {
   size_t holdout_weeks = 0;
   size_t passes = 0;
   double base_share = 0; // trend + seasonality share of the target
+  std::vector<double> holdout_prediction; // training-only model, every week
   std::vector<ChannelReport> channels;
 };
 

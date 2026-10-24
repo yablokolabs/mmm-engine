@@ -207,6 +207,7 @@ FitResult fit_mmm(const Dataset &data, const FitOptions &opts) {
       pred[t] += X_all.at(t, c) * beta[c];
   result.train = score(data.target, pred, 0, n_train);
   result.holdout = score(data.target, pred, n_train, T);
+  result.holdout_prediction = pred;
   result.train_weeks = n_train;
   result.holdout_weeks = opts.holdout_weeks;
 
