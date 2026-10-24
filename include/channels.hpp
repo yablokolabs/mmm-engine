@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <vector>
 
 struct ChannelParams {
@@ -10,6 +11,7 @@ struct ChannelParams {
 };
 
 struct Channel {
+  std::string name;
   ChannelParams params;
   std::vector<double> spend;
   std::vector<double> adstocked;

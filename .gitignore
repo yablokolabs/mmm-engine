@@ -18,3 +18,8 @@ Makefile
 .idea/
 *.swp
 .DS_Store
+
+# Example outputs (regenerate with examples/synthetic/run.sh)
+examples/synthetic/model.json
+examples/synthetic/plan.json
+examples/synthetic/forecast.json

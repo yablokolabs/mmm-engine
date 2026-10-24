@@ -17,8 +17,7 @@ if(NOT nlohmann_json_FOUND)
     FetchContent_MakeAvailable(nlohmann_json)
 endif()
 
-add_executable(mmm
-    src/cli.cpp
+add_library(mmm_core STATIC
     src/adstock.cpp
     src/saturation.cpp
     src/channels.cpp
@@ -27,7 +26,18 @@ add_executable(mmm
     src/mmm.cpp
     src/json_io.cpp
     src/optimizer.cpp
+    src/linalg.cpp
+    src/data_io.cpp
+    src/fit.cpp
 )
+target_include_directories(mmm_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(mmm_core PUBLIC nlohmann_json::nlohmann_json)
 
-target_link_libraries(mmm nlohmann_json::nlohmann_json)
-target_include_directories(mmm PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+add_executable(mmm src/cli.cpp)
+target_link_libraries(mmm PRIVATE mmm_core)
+
+enable_testing()
+add_executable(mmm_tests tests/test_mmm.cpp)
+target_link_libraries(mmm_tests PRIVATE mmm_core)
+target_compile_definitions(mmm_tests PRIVATE MMM_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+add_test(NAME mmm_tests COMMAND mmm_tests)
