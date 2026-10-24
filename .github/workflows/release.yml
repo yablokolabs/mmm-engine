@@ -3,10 +3,18 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, e.g. v0.2.0 (tag is created on the selected branch)"
+        required: true
 
 permissions:
   contents: write
   packages: write
+
+env:
+  VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
 
 jobs:
   binaries:
@@ -20,6 +28,8 @@ jobs:
           - arch: arm64
             runner: ubuntu-24.04-arm
     steps:
+      - name: Check version format
+        run: echo "$VERSION" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || { echo "bad version '$VERSION'"; exit 1; }
       - uses: actions/checkout@v4
       - name: Build portable binary
         run: |
@@ -29,7 +39,7 @@ jobs:
           ctest --test-dir build --output-on-failure
       - name: Package
         run: |
-          name="mmm-${GITHUB_REF_NAME}-linux-${{ matrix.arch }}"
+          name="mmm-${VERSION}-linux-${{ matrix.arch }}"
           mkdir "$name"
           cp build/mmm README.md LICENSE CHANGELOG.md "$name/"
           tar -czf "$name.tar.gz" "$name"
@@ -51,7 +61,7 @@ jobs:
           merge-multiple: true
       - name: Release notes from CHANGELOG.md
         run: |
-          awk -v tag="## ${GITHUB_REF_NAME}" '
+          awk -v tag="## ${VERSION}" '
             $0 == tag {on=1; next}
             on && /^## / {exit}
             on {print}
@@ -61,20 +71,20 @@ jobs:
           ## Install
 
           \`\`\`sh
-          curl -LO https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/mmm-${GITHUB_REF_NAME}-linux-x86_64.tar.gz
-          tar -xzf mmm-${GITHUB_REF_NAME}-linux-x86_64.tar.gz
-          ./mmm-${GITHUB_REF_NAME}-linux-x86_64/mmm help
+          curl -LO https://github.com/${GITHUB_REPOSITORY}/releases/download/${VERSION}/mmm-${VERSION}-linux-x86_64.tar.gz
+          tar -xzf mmm-${VERSION}-linux-x86_64.tar.gz
+          ./mmm-${VERSION}-linux-x86_64/mmm help
           \`\`\`
 
           Needs glibc 2.38+ (Ubuntu 24.04+, Debian 13+, Fedora 39+). Older systems: use Docker.
 
-          Docker: \`docker run --rm -v "\$PWD:/work" ghcr.io/${GITHUB_REPOSITORY}:${GITHUB_REF_NAME#v} help\`
+          Docker: \`docker run --rm -v "\$PWD:/work" ghcr.io/${GITHUB_REPOSITORY}:${VERSION#v} help\`
           NOTES
           test -s notes.md
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/* --title "MMM Engine $GITHUB_REF_NAME" --notes-file notes.md
+        run: gh release create "$VERSION" dist/* --target "$GITHUB_SHA" --title "MMM Engine $VERSION" --notes-file notes.md
 
   docker:
     name: Docker image (GHCR)
@@ -93,8 +103,8 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{version}},value=${{ env.VERSION }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.VERSION }}
             type=raw,value=latest
       - uses: docker/build-push-action@v6
         with:

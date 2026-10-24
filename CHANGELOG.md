@@ -8,7 +8,7 @@
 - CSV input with line-numbered errors.
 - `examples/synthetic`: 3 years of data with known answers, `run.sh`, `grade.py`.
 - Test suite (`mmm_tests`): known-truth recovery, determinism, optimizer vs brute force, decision quality on the true curves.
-- CI on every push and pull request; tagged releases ship Linux x86-64 and arm64 binaries and a Docker image on GHCR.
+- CI on every push and pull request; releases (tag push or the "Release" workflow's Run workflow button) ship Linux x86-64 and arm64 binaries and a Docker image on GHCR.
 - `MMM_NATIVE` CMake option (default ON); release builds turn it off for portable binaries.
 
 ### Changed
