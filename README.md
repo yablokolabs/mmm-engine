@@ -1,5 +1,7 @@
 # ⚡ MMM Engine (C++23)
 
+[![CI](https://github.com/yablokolabs/mmm-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/yablokolabs/mmm-engine/actions/workflows/ci.yml)
+
 ### **The Fastest Deterministic MMM Engine on Earth — Built with C++23**
 
 ## 🧩 Overview
@@ -92,12 +94,19 @@ Perfect for:
 
 ---
 ## 📦 Installation
+
+**Prebuilt binary** (Linux x86-64 / arm64, glibc 2.38+): download from [Releases](https://github.com/yablokolabs/mmm-engine/releases).
+
+**Docker** (any OS):
 ```bash
-git clone https://github.com/YOUR_GITHUB_USERNAME/mmm-engine
+docker run --rm -v "$PWD:/work" ghcr.io/yablokolabs/mmm-engine fit --data history.csv --output model.json
+```
+
+**From source** (CMake 3.27+, GCC 13+ or Clang 17+):
+```bash
+git clone https://github.com/yablokolabs/mmm-engine
 cd mmm-engine
-mkdir build && cd build
-cmake ..
-make -j
+./build.sh && ./build/mmm_tests
 ```
 
 ## 🖥️ CLI Usage

@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: Build and test (${{ matrix.compiler }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [g++-13, g++-14]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -DMMM_NATIVE=OFF -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
+      - name: Build
+        run: cmake --build build -- -j"$(nproc)"
+      - name: Unit tests
+        run: ctest --test-dir build --output-on-failure
+      - name: Known-answer example
+        run: examples/synthetic/run.sh
+      - name: Hand-written config still runs
+        run: ./build/mmm run --config examples/basic/model.json --output /tmp/out.json
+
+  docker:
+    name: Docker image builds
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: mmm-engine:ci

@@ -3,7 +3,13 @@ cmake_minimum_required(VERSION 3.27)
 project(mmm_engine CXX)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_FLAGS "-O3 -march=native -ffast-math")
+# MMM_NATIVE tunes for the build machine's CPU; release binaries turn it off
+# so they run on any x86-64 / arm64 machine.
+option(MMM_NATIVE "Optimise for the build machine's CPU (-march=native)" ON)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -ffast-math")
+if(MMM_NATIVE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+endif()
 
 find_package(nlohmann_json QUIET)
 if(NOT nlohmann_json_FOUND)

@@ -1,0 +1,5 @@
+build/
+.git/
+examples/synthetic/model.json
+examples/synthetic/plan.json
+examples/synthetic/forecast.json
