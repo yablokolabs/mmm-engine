@@ -174,6 +174,49 @@ static void test_run_config_still_loads() {
   CHECK(pred.size() == m.channels[0].spend.size(), "one prediction per week");
 }
 
+static void test_unidentifiable_channels_are_refused() {
+  std::puts("fit refuses constant and perfectly correlated channels");
+  Truth tr = make_truth(5, 120.0);
+  Dataset twin = tr.data;
+  twin.channel_names.push_back("search_copy");
+  std::vector<double> copy = twin.spend[1];
+  for (double &v : copy)
+    v *= 2.0; // same pattern, different scale: r = 1
+  twin.spend.push_back(copy);
+  try {
+    fit_mmm(twin, FitOptions{});
+    CHECK(false, "expected a correlated-channels error");
+  } catch (const std::invalid_argument &e) {
+    CHECK(std::string(e.what()).find("search_copy") != std::string::npos,
+          "error names the correlated channel");
+  }
+
+  Dataset flat = tr.data;
+  flat.channel_names.push_back("radio");
+  flat.spend.push_back(std::vector<double>(flat.target.size(), 50.0));
+  try {
+    fit_mmm(flat, FitOptions{});
+    CHECK(false, "expected a constant-channel error");
+  } catch (const std::invalid_argument &e) {
+    CHECK(std::string(e.what()).find("constant") != std::string::npos,
+          "error says constant");
+  }
+
+  // Strong but separable correlation: fits, with a warning.
+  Dataset close = tr.data;
+  close.channel_names.push_back("search_echo");
+  std::vector<double> echo = close.spend[1];
+  std::mt19937 rng(1);
+  std::uniform_real_distribution<double> jitter(0.85, 1.15);
+  for (double &v : echo)
+    v *= jitter(rng);
+  close.spend.push_back(echo);
+  const double r = correlation(close.spend[1], close.spend[3], close.target.size());
+  std::printf("    echo correlation r = %.3f\n", r);
+  const FitResult fit = fit_mmm(close, FitOptions{});
+  CHECK(!fit.warnings.empty(), "correlated-but-separable pair produces a warning");
+}
+
 static void test_csv_errors() {
   std::puts("csv loader reports bad cells with line numbers");
   const std::string path = "mmm_test_bad.csv";
@@ -194,6 +237,7 @@ int main() {
   test_fitted_plan_captures_true_lift();
   test_fit_is_deterministic();
   test_run_config_still_loads();
+  test_unidentifiable_channels_are_refused();
   test_csv_errors();
   std::printf("%s (%d failures)\n", failures ? "FAILED" : "ALL PASSED", failures);
   return failures ? 1 : 0;

@@ -16,6 +16,10 @@ struct FitOptions {
   std::vector<double> slope_grid{1.0, 1.5, 2.0, 2.5, 3.0};
   // Half-saturation as a multiple of the channel's median adstocked spend.
   std::vector<double> half_sat_grid{0.3, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0};
+  // Two channels whose weekly spend correlates at or above this cannot be
+  // told apart; the fit refuses them. Above warn_correlation it warns.
+  double max_correlation = 0.98;
+  double warn_correlation = 0.90;
 };
 
 struct Accuracy {
@@ -42,6 +46,7 @@ struct FitResult {
   size_t passes = 0;
   double base_share = 0; // trend + seasonality share of the target
   std::vector<double> holdout_prediction; // training-only model, every week
+  std::vector<std::string> warnings;      // e.g. strongly correlated channels
   std::vector<ChannelReport> channels;
 };
 
@@ -49,6 +54,11 @@ struct FitResult {
 // decay, half-saturation and slope; trend, seasonality and channel betas
 // solved by least squares with betas constrained to be non-negative.
 FitResult fit_mmm(const Dataset &data, const FitOptions &opts);
+
+// Pearson correlation of two equal-length series over [0, n); 0 if either is
+// constant.
+double correlation(const std::vector<double> &a, const std::vector<double> &b,
+                   size_t n);
 
 Accuracy score(const std::vector<double> &actual,
                const std::vector<double> &predicted, size_t from, size_t to);

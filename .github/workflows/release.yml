@@ -27,26 +27,30 @@ jobs:
             runner: ubuntu-24.04
           - arch: arm64
             runner: ubuntu-24.04-arm
+          - arch: arm64
+            runner: macos-14
+            os: macos
+            cxx: g++-14
     steps:
       - name: Check version format
         run: echo "$VERSION" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || { echo "bad version '$VERSION'"; exit 1; }
       - uses: actions/checkout@v4
       - name: Build portable binary
         run: |
-          cmake -S . -B build -DMMM_NATIVE=OFF \
+          cmake -S . -B build -DMMM_NATIVE=OFF ${{ matrix.cxx && format('-DCMAKE_CXX_COMPILER={0}', matrix.cxx) || '' }} \
             -DCMAKE_EXE_LINKER_FLAGS="-static-libstdc++ -static-libgcc"
-          cmake --build build -- -j"$(nproc)"
+          cmake --build build -- -j4
           ctest --test-dir build --output-on-failure
       - name: Package
         run: |
-          name="mmm-${VERSION}-linux-${{ matrix.arch }}"
+          name="mmm-${VERSION}-${{ matrix.os || 'linux' }}-${{ matrix.arch }}"
           mkdir "$name"
           cp build/mmm README.md LICENSE CHANGELOG.md "$name/"
           tar -czf "$name.tar.gz" "$name"
-          sha256sum "$name.tar.gz" > "$name.tar.gz.sha256"
+          shasum -a 256 "$name.tar.gz" > "$name.tar.gz.sha256"
       - uses: actions/upload-artifact@v4
         with:
-          name: mmm-linux-${{ matrix.arch }}
+          name: mmm-${{ matrix.os || 'linux' }}-${{ matrix.arch }}
           path: mmm-*.tar.gz*
 
   release:
@@ -76,7 +80,7 @@ jobs:
           ./mmm-${VERSION}-linux-x86_64/mmm help
           \`\`\`
 
-          Needs glibc 2.38+ (Ubuntu 24.04+, Debian 13+, Fedora 39+). Older systems: use Docker.
+          Linux binaries need glibc 2.38+ (Ubuntu 24.04+, Debian 13+, Fedora 39+). macOS: Apple Silicon. Older systems: use Docker.
 
           Docker: \`docker run --rm -v "\$PWD:/work" ghcr.io/${GITHUB_REPOSITORY}:${VERSION#v} help\`
           NOTES

@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.2.1
+
+### Added
+- `mmm fit` refuses channels the data cannot identify: constant spend, or two channels whose weekly spend correlates at r >= 0.98 (`--max-correlation`). Warns from r >= 0.90; warnings also go to `fit.warnings` in the model JSON.
+- macOS Apple Silicon (arm64) release binary; macOS build in CI.
+
 ## v0.2.0
 
 ### Added

@@ -11,13 +11,16 @@
 #include "optimizer.hpp"
 
 static const char *kUsage = R"(Usage:
-  mmm fit      --data history.csv [--target sales] [--holdout 13] [--fourier 2] --output model.json
+  mmm fit      --data history.csv [--target sales] [--holdout 13] [--fourier 2]
+               [--max-correlation 0.98] --output model.json
   mmm optimize --config model.json [--budget WEEKLY_TOTAL] [--bound 0.5] --output plan.json
   mmm forecast --config model.json --weeks 26 [--plan plan.json] --output forecast.json
   mmm run      --config model.json --output out.json
 
 fit       Learn adstock, saturation, trend, seasonality and channel effects
           from weekly history. The last --holdout weeks are scored, not fitted.
+          Refuses constant channels and channel pairs whose spend correlates
+          at or above --max-correlation; warns from 0.90.
 optimize  Reallocate a weekly budget across channels to maximise sales.
           Default budget: current weekly spend (mean of the last 13 weeks).
           --bound 0.5 keeps each channel within +/-50% of its current spend.
@@ -70,6 +73,7 @@ static int cmd_fit(const std::map<std::string, std::string> &flags) {
   FitOptions opts;
   opts.holdout_weeks = std::stoul(get(flags, "--holdout", "13"));
   opts.fourier_terms = std::stoul(get(flags, "--fourier", "2"));
+  opts.max_correlation = std::stod(get(flags, "--max-correlation", "0.98"));
   const FitResult fit = fit_mmm(data, opts);
   const std::string out = require(flags, "--output");
   saveFit(out, data, fit, opts);
@@ -80,6 +84,8 @@ static int cmd_fit(const std::map<std::string, std::string> &flags) {
   if (fit.holdout_weeks)
     std::cout << "holdout R2 " << fit.holdout.r2 << "  MAPE " << fit.holdout.mape * 100
               << "% (" << fit.holdout_weeks << " weeks never seen by the fit)\n";
+  for (const auto &w : fit.warnings)
+    std::cout << "warning: " << w << "\n";
   for (const auto &r : fit.channels)
     std::cout << "  " << r.name << ": share " << r.share * 100 << "%, ROI " << r.roi
               << ", marginal ROI " << r.mroi << "\n";

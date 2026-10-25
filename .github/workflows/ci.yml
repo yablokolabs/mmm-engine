@@ -29,6 +29,20 @@ jobs:
       - name: Hand-written config still runs
         run: ./build/mmm run --config examples/basic/model.json --output /tmp/out.json
 
+  macos:
+    name: Build and test (macOS arm64, g++-14)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -DMMM_NATIVE=OFF -DCMAKE_CXX_COMPILER=g++-14
+      - name: Build
+        run: cmake --build build -- -j"$(sysctl -n hw.ncpu)"
+      - name: Unit tests
+        run: ctest --test-dir build --output-on-failure
+      - name: Known-answer example
+        run: examples/synthetic/run.sh
+
   docker:
     name: Docker image builds
     runs-on: ubuntu-24.04

@@ -87,12 +87,14 @@ void saveFit(const std::string &path, const Dataset &data, const FitResult &fit,
               {"holdout", {{"r2", fit.holdout.r2}, {"mape", fit.holdout.mape}}},
               {"base_share", fit.base_share},
               {"training_model_prediction", fit.holdout_prediction},
+              {"warnings", fit.warnings},
               {"channels", channels},
               {"options",
                {{"fourier_terms", opts.fourier_terms},
                 {"decay_grid", opts.decay_grid},
                 {"slope_grid", opts.slope_grid},
-                {"half_saturation_grid", opts.half_sat_grid}}}};
+                {"half_saturation_grid", opts.half_sat_grid},
+                {"max_correlation", opts.max_correlation}}}};
   write_json(path, j);
 }
 

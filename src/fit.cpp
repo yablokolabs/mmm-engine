@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <stdexcept>
 
 #include "adstock.hpp"
@@ -118,6 +119,32 @@ Accuracy score(const std::vector<double> &actual,
   return a;
 }
 
+double correlation(const std::vector<double> &a, const std::vector<double> &b,
+                   size_t n) {
+  double ma = 0, mb = 0;
+  for (size_t t = 0; t < n; ++t) {
+    ma += a[t];
+    mb += b[t];
+  }
+  ma /= static_cast<double>(n);
+  mb /= static_cast<double>(n);
+  double sab = 0, saa = 0, sbb = 0;
+  for (size_t t = 0; t < n; ++t) {
+    sab += (a[t] - ma) * (b[t] - mb);
+    saa += (a[t] - ma) * (a[t] - ma);
+    sbb += (b[t] - mb) * (b[t] - mb);
+  }
+  if (saa <= 0 || sbb <= 0)
+    return 0.0;
+  return sab / std::sqrt(saa * sbb);
+}
+
+static std::string fixed2(double v) {
+  char buf[32];
+  std::snprintf(buf, sizeof buf, "%.2f", v);
+  return buf;
+}
+
 FitResult fit_mmm(const Dataset &data, const FitOptions &opts) {
   const size_t T = data.target.size();
   const size_t m = data.channel_names.size();
@@ -132,6 +159,32 @@ FitResult fit_mmm(const Dataset &data, const FitOptions &opts) {
         "too few training weeks (" + std::to_string(n_train) + ") for " +
         std::to_string(base + m) + " coefficients; need at least " +
         std::to_string(2 * (base + m)));
+
+  // Channels the data cannot identify: constant spend, or two channels that
+  // move together. Fail loudly instead of splitting credit arbitrarily.
+  FitResult result;
+  for (size_t i = 0; i < m; ++i) {
+    const auto [lo, hi] = std::minmax_element(data.spend[i].begin(),
+                                              data.spend[i].begin() + n_train);
+    if (*hi - *lo <= 1e-12)
+      throw std::invalid_argument("channel '" + data.channel_names[i] +
+                                  "' has constant spend; the model cannot measure it. "
+                                  "Drop it or merge it into another channel.");
+  }
+  for (size_t i = 0; i < m; ++i)
+    for (size_t j = i + 1; j < m; ++j) {
+      const double r = correlation(data.spend[i], data.spend[j], n_train);
+      const std::string pair = "'" + data.channel_names[i] + "' and '" +
+                               data.channel_names[j] + "' (r = " + fixed2(r) + ")";
+      if (std::abs(r) >= opts.max_correlation)
+        throw std::invalid_argument(
+            "spend for " + pair +
+            " moves together; the model cannot tell them apart. Merge them into one "
+            "column, or drop one.");
+      if (std::abs(r) >= opts.warn_correlation)
+        result.warnings.push_back("spend for " + pair +
+                                  " is strongly correlated; their split of credit is uncertain");
+    }
 
   std::vector<double> y_train(data.target.begin(), data.target.begin() + n_train);
   Design X = base_design(n_train, T, opts.fourier_terms, m);
@@ -152,7 +205,6 @@ FitResult fit_mmm(const Dataset &data, const FitOptions &opts) {
     throw std::runtime_error("design matrix is singular; check for constant or duplicate columns");
   double best_sse = sse(X, y_train, beta);
 
-  FitResult result;
   for (size_t pass = 0; pass < opts.max_passes; ++pass) {
     bool changed = false;
     for (size_t i = 0; i < m; ++i) {
